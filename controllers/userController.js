@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import { body, validationResult } from "express-validator";
 import User from "../models/user.js";
 import bcrypt from "bcryptjs";
+import passport from "passport";
 
 const getUsers = asyncHandler(async (req, res, next) => {
   const users = await User.find({}).exec();
@@ -44,12 +45,16 @@ const postUser = [
   }),
 ];
 
-const deleteUser = asyncHandler(async (req, res, next) => {
-  await User.findByIdAndDelete(req.params.userid);
-  res.json({ message: "done" });
-});
+const deleteUser = [
+  passport.authenticate("jwt", { session: false }),
+  asyncHandler(async (req, res, next) => {
+    await User.findByIdAndDelete(req.user._id);
+    res.json({ message: "done" });
+  })
+];
 
 const updateUser = [
+  passport.authenticate("jwt", { session: false }),
   body("username")
     .trim()
     .isLength({ min: 1 }).withMessage("Username is required.")
@@ -77,7 +82,7 @@ const updateUser = [
       return;
     }
     if (!req.body.password) {
-      const updatedUser = await User.findByIdAndUpdate(req.params.userid, {
+      const updatedUser = await User.findByIdAndUpdate(req.user._id, {
         $set: { username: req.body.username },
         ...(req.body.status ? { status: req.body.status } : {}),
       }, { new: true });

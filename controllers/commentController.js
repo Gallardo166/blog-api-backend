@@ -1,6 +1,8 @@
 import asyncHandler from "express-async-handler";
 import { body, validationResult } from "express-validator";
 import Comment from "../models/comment.js";
+import passport from "passport";
+import { isAuthor } from "./auth.js";
 
 const getComments = asyncHandler(async (req, res, next) => {
   const comments = await Comment.find({ post: req.params.postid }).populate("post").populate("user").exec();
@@ -13,6 +15,7 @@ const getComment = asyncHandler(async (req, res, next) => {
 });
 
 const postComment = [
+  passport.authenticate("jwt", { session: false }),
   body("body")
     .trim()
     .isLength({ min: 1 }).withMessage("Comment body is required")
@@ -27,7 +30,7 @@ const postComment = [
     }
     const newComment = new Comment({
       body: req.body.body,
-      user: req.body.userid,
+      user: req.user._id,
       date: Date.now(),
       post: req.params.postid,
     });
@@ -36,12 +39,18 @@ const postComment = [
   }),
 ];
 
-const deleteComment = asyncHandler(async (req, res, next) => {
-  await Comment.findByIdAndDelete(req.params.commentid);
-  res.json({ message: "done" });
-});
+const deleteComment = [
+  passport.authenticate("jwt", { session: false }),
+  isAuthor,
+  asyncHandler(async (req, res, next) => {
+    await Comment.findByIdAndDelete(req.params.commentid);
+    res.json({ message: "done" });
+  })
+];
 
 const updateComment = [
+  passport.authenticate("jwt", { session: false }),
+  isAuthor,
   body("body")
     .trim()
     .isLength({ min: 1 }).withMessage("Comment body is required")

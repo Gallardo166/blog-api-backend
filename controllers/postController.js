@@ -1,7 +1,8 @@
 import asyncHandler from "express-async-handler";
 import { body, validationResult } from "express-validator";
+import { isAuthor } from "./auth.js";
+import passport from "passport";
 import Post from "../models/post.js";
-import User from "../models/user.js";
 import Comment from "../models/comment.js";
 
 const getPosts = asyncHandler(async (req, res, next) => {
@@ -15,6 +16,8 @@ const getPost = asyncHandler(async (req, res, next) => {
 });
 
 const postPost = [
+  passport.authenticate("jwt", { session: false }),
+  isAuthor,
   body("title")
     .trim()
     .isLength({ min: 1 }).withMessage("Post title is required.")
@@ -43,7 +46,7 @@ const postPost = [
       title: req.body.title,
       subheader: req.body.subheader,
       body: req.body.body,
-      user: req.body.userid,
+      user: req.user._id,
       isPublished: req.body.isPublished,
       publishDate: req.body.publishDate ? req.body.publishDate : null,
       editDate: null,
@@ -53,15 +56,21 @@ const postPost = [
   }),
 ];
 
-const deletePost = asyncHandler(async (req, res, next) => {
-  await Promise.all([
-    Post.findByIdAndDelete(req.params.postid),
-    Comment.deleteMany({ post: req.params.postid }),
-  ]);
-  res.json({ message: "done" });
-});
+const deletePost = [
+  passport.authenticate("jwt", { session: false }),
+  isAuthor,
+  asyncHandler(async (req, res, next) => {
+    await Promise.all([
+      Post.findByIdAndDelete(req.params.postid),
+      Comment.deleteMany({ post: req.params.postid }),
+    ]);
+    res.json({ message: "done" });
+  }),
+];
 
 const updatePost = [
+  passport.authenticate("jwt", { session: false }),
+  isAuthor,
   body("title")
     .trim()
     .isLength({ min: 1 }).withMessage("Post title is required.")

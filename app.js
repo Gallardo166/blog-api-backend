@@ -5,6 +5,11 @@ import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import mongoose from "mongoose";
 
+import MongoStore from "connect-mongo";
+import passport from "passport";
+import session from "express-session";
+import passportConfig from "./config/passport.js";
+
 import indexRouter from "./routes/index.js";
 import postRouter from "./routes/post.js";
 import userRouter from "./routes/user.js";
@@ -17,6 +22,7 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const mongoDB = process.env.MONGODB_URI;
+const sessionStore = MongoStore.create({ mongoUrl: process.env.MONGODB_URI, collectionName: "sessions" });
 
 mongoose.set("strictQuery", false);
 
@@ -31,6 +37,13 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
+app.use(session({
+  secret: process.env.SECRET,
+  resave: false,
+  saveUninitialized: true,
+}));
+passportConfig(passport);
+app.use(passport.session());
 
 app.use("/", indexRouter);
 app.use("/posts", postRouter);
