@@ -5,12 +5,12 @@ import passport from "passport";
 import { isAuthor } from "./auth.js";
 
 const getComments = asyncHandler(async (req, res, next) => {
-  const comments = await Comment.find({ post: req.params.postid }).populate("post").populate("user").exec();
+  const comments = await Comment.find({ post: req.params.postid }).populate("user", "username").exec();
   res.json({ comments });
 });
 
 const getComment = asyncHandler(async (req, res, next) => {
-  const comment = await Comment.findById(req.params.commentid).populate("post").populate("user").exec();
+  const comment = await Comment.findById(req.params.commentid).populate("user", "username").exec();
   res.json({ comment });
 });
 

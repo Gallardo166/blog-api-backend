@@ -6,12 +6,12 @@ import Post from "../models/post.js";
 import Comment from "../models/comment.js";
 
 const getPosts = asyncHandler(async (req, res, next) => {
-  const posts = await Post.find({}).populate("user").exec();
+  const posts = await Post.find({}).populate("user", "username").populate("categories").exec();
   res.json({ posts });
 });
 
 const getPost = asyncHandler(async (req, res, next) => {
-  const post = await Post.findById(req.params.postid).populate("user").exec();
+  const post = await Post.findById(req.params.postid).populate("user", "username").populate("categories").exec();
   res.json({ post });
 });
 
@@ -30,11 +30,15 @@ const postPost = [
     .trim()
     .isLength({ min: 1 }).withMessage("Post body is required.")
     .escape(),
+  body("categories.*")
+    .escape(),
   body("isPublished")
-    .isBoolean(),
+    .isBoolean()
+    .escape(),
   body("publishDate")
     .optional({ values: "falsy" })
-    .isDate(),
+    .isDate()
+    .escape(),
 
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
@@ -47,6 +51,7 @@ const postPost = [
       subheader: req.body.subheader,
       body: req.body.body,
       user: req.user._id,
+      categories: req.body.categories,
       isPublished: req.body.isPublished,
       publishDate: req.body.publishDate ? req.body.publishDate : null,
       editDate: null,
@@ -83,14 +88,19 @@ const updatePost = [
     .trim()
     .isLength({ min: 1 }).withMessage("Post body is required.")
     .escape(),
+  body("categories.*")
+    .escape(),
   body("isPublished")
-    .isBoolean(),
+    .isBoolean()
+    .escape(),
   body("publishDate")
     .optional({ values: "falsy" })
-    .isDate(),
+    .isDate()
+    .escape(),
   body("editDate")
     .optional({ values: "falsy" })
-    .isDate(),
+    .isDate()
+    .escape(),
 
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
@@ -103,6 +113,7 @@ const updatePost = [
         title: req.body.title,
         subheader: req.body.subheader,
         body: req.body.body,
+        categories: req.body.categories,
         isPublished: req.body.isPublished,
         ...(req.body.publishDate ? { publishDate: req.body.publishDate } : {}),
         ...(req.body.editDate ? { editDate: req.body.editDate } : {}),

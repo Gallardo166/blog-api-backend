@@ -3,16 +3,24 @@ import { body, validationResult } from "express-validator";
 import User from "../models/user.js";
 import bcrypt from "bcryptjs";
 import passport from "passport";
+import { isAuthor } from "./auth.js";
 
-const getUsers = asyncHandler(async (req, res, next) => {
-  const users = await User.find({}).exec();
-  res.json({ users });
-});
+const getUsers = [
+  passport.authenticate("jwt", { session: false }),
+  isAuthor,
+  asyncHandler(async (req, res, next) => {
+    const users = await User.find({}).exec();
+    res.json({ users });
+  }),
+];
 
-const getUser = asyncHandler(async (req, res, next) => {
-  const user = await User.findById(req.params.userid).exec();
-  res.json({ user });
-});
+const getUser = [
+  passport.authenticate("jwt", { session: false }),
+  asyncHandler(async (req, res, next) => {
+    const user = await User.findById(req.user._id).exec();
+    res.json({ user });
+  }),
+];
 
 const postUser = [
   body("username")
