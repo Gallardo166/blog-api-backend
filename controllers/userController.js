@@ -33,6 +33,13 @@ const postUser = [
     .isLength({ min: 1 }).withMessage("Password is required.")
     .isLength({ min: 8 }).withMessage("Password must exceed 8 characters.")
     .escape(),
+  body("confirmPassword")
+    .trim()
+    .custom((value, { req }) => {
+      if (value !== req.body.password) throw new Error("Passwords do not match");
+      return true;
+    })
+    .escape(),
   
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);

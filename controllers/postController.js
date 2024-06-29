@@ -6,7 +6,7 @@ import Post from "../models/post.js";
 import Comment from "../models/comment.js";
 
 const getPosts = asyncHandler(async (req, res, next) => {
-  const posts = await Post.find({}).populate("user", "username").populate("categories").exec();
+  const posts = await Post.find({}, "title subheader categories user").populate("user", "username").populate("categories").exec();
   res.json({ posts });
 });
 

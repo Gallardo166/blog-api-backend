@@ -44,6 +44,12 @@ app.use(session({
 passportConfig(passport);
 app.use(passport.session());
 
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "http://localhost:5174");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type")
+  next();
+})
+
 app.use("/", indexRouter);
 app.use("/posts", postRouter);
 app.use("/users", userRouter);
@@ -57,7 +63,7 @@ app.use((err, req, res, next) => {
   res.locals.message = err.message;
   res.locals.error = req.app.get("env") === "development" ? err : {};
   res.status(err.status || 500);
-  res.send(err);
+  res.send({ message: err.message });
 });
 
 export default app;
