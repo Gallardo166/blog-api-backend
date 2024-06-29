@@ -25,6 +25,10 @@ const PostSchema = new Schema({
       required: true,
     }
   ],
+  imageurl: {
+    type: String,
+    required: true,
+  },
   isPublished: {
     type: Boolean,
     required: true,

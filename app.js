@@ -45,7 +45,7 @@ passportConfig(passport);
 app.use(passport.session());
 
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:5174");
+  res.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
   res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type")
   next();
 })
@@ -64,6 +64,7 @@ app.use((err, req, res, next) => {
   res.locals.error = req.app.get("env") === "development" ? err : {};
   res.status(err.status || 500);
   res.send({ message: err.message });
+  console.log(err.message);
 });
 
 export default app;

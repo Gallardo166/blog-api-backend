@@ -4,9 +4,20 @@ import { isAuthor } from "./auth.js";
 import passport from "passport";
 import Post from "../models/post.js";
 import Comment from "../models/comment.js";
+import multer from "multer";
+import "dotenv/config";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.API_KEY,
+  api_secret: process.env.API_SECRET,
+});
+
+const upload = multer({ dest: "uploads/" });
 
 const getPosts = asyncHandler(async (req, res, next) => {
-  const posts = await Post.find({}, "title subheader categories user").populate("user", "username").populate("categories").exec();
+  const posts = await Post.find({}, "title subheader categories user imageurl").populate("user", "username").populate("categories").exec();
   res.json({ posts });
 });
 
@@ -18,6 +29,7 @@ const getPost = asyncHandler(async (req, res, next) => {
 const postPost = [
   passport.authenticate("jwt", { session: false }),
   isAuthor,
+  upload.single("image"),
   body("title")
     .trim()
     .isLength({ min: 1 }).withMessage("Post title is required.")
@@ -51,11 +63,21 @@ const postPost = [
       subheader: req.body.subheader,
       body: req.body.body,
       user: req.user._id,
-      categories: req.body.categories,
+      categories: JSON.parse(req.body.categories),
       isPublished: req.body.isPublished,
       publishDate: req.body.publishDate ? req.body.publishDate : null,
       editDate: null,
     });
+    try {
+      if (req.file) {
+        const imageResult = await cloudinary.uploader.upload(req.file.path);
+        newPost.imageurl = imageResult.secure_url;
+      }
+    } catch (err) {
+      console.log(err);
+      res.json({ message: "Error uploading image to Cloudinary." });
+      return;
+    }
     await newPost.save();
     res.json({ post: newPost });
   }),
@@ -113,7 +135,7 @@ const updatePost = [
         title: req.body.title,
         subheader: req.body.subheader,
         body: req.body.body,
-        categories: req.body.categories,
+        categories: JSON.parse(req.body.categories),
         isPublished: req.body.isPublished,
         ...(req.body.publishDate ? { publishDate: req.body.publishDate } : {}),
         ...(req.body.editDate ? { editDate: req.body.editDate } : {}),
