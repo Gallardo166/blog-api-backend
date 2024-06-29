@@ -18,13 +18,13 @@ const login = [
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.json({ errors: errors.array() });
+      res.json({ message: errors.array() });
       return;
     }
     next();
   }),
 
-  passport.authenticate("local", { session: false }),
+  passport.authenticate("local", { session: false, failureMessage: "Not authorized." }),
 
   (req, res, next) => {
     jwt.sign(
@@ -39,6 +39,15 @@ const login = [
   },
 ];
 
+const logout = (req, res, next) => {
+  req.logout((err) => {
+    if (err) {
+      return next(err);
+    }
+    res.json({ message: "done" });
+  });
+}
+
 const isAuthor = (req, res, next) => {
   if (req.isAuthenticated() && req.user.status === "author") {
     next();
@@ -47,4 +56,4 @@ const isAuthor = (req, res, next) => {
   res.status(401).json({ message: "You are not an author." });
 }
 
-export { login, isAuthor }
+export { login, logout, isAuthor }
