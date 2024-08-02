@@ -5,7 +5,7 @@ import passport from "passport";
 import { isAuthor } from "./auth.js";
 
 const getComments = asyncHandler(async (req, res, next) => {
-  const comments = await Comment.find({ post: req.params.postid }).populate("user", "username").exec();
+  const comments = await Comment.find({ post: req.params.postid }).sort({ date: -1 }).populate("user", "username").exec();
   res.json({ comments });
 });
 
@@ -41,9 +41,9 @@ const postComment = [
 
 const deleteComment = [
   passport.authenticate("jwt", { session: false }),
-  isAuthor,
   asyncHandler(async (req, res, next) => {
-    await Comment.findByIdAndDelete(req.params.commentid);
+    const comment = await Comment.findById(req.params.commentid);
+    if (comment.user.toString() === req.user._id.toString() || req.user.status === "author") await Comment.deleteOne({ _id: req.params.commentid });
     res.json({ message: "done" });
   })
 ];

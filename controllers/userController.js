@@ -1,6 +1,7 @@
 import asyncHandler from "express-async-handler";
 import { body, validationResult } from "express-validator";
 import User from "../models/user.js";
+import Comment from "../models/comment.js";
 import bcrypt from "bcryptjs";
 import passport from "passport";
 import { isAuthor } from "./auth.js";
@@ -102,6 +103,7 @@ const updateUser = [
         ...(req.body.status ? { status: req.body.status } : {}),
       }, { new: true });
       res.json({ user: updatedUser });
+      return;
     }
     bcrypt.hash(req.body.password, 10, async (err, hashedPassword) => {
       if (err) return next(err);
@@ -117,4 +119,12 @@ const updateUser = [
   }),
 ];
 
-export { getUsers, getUser, postUser, deleteUser, updateUser }
+const getCommentsByUser = [
+  passport.authenticate("jwt", { session: false }),
+  asyncHandler(async (req, res, next) => {
+    const comments = await Comment.find({ user: req.params.userid }).populate("post", "title").sort({ publishDate: -1 }).exec();
+    res.json({ comments });
+  })
+]
+
+export { getUsers, getUser, postUser, deleteUser, updateUser, getCommentsByUser }

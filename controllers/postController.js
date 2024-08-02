@@ -16,10 +16,19 @@ cloudinary.config({
 
 const upload = multer({ dest: "uploads/" });
 
-const getPosts = asyncHandler(async (req, res, next) => {
-  const posts = await Post.find({}, "title subheader categories user imageurl").populate("user", "username").populate("categories").exec();
+const getPosts = [
+  passport.authenticate("jwt", { session: false }),
+  isAuthor,
+  asyncHandler(async (req, res, next) => {
+    const posts = await Post.find({}, "title subheader body categories user imageurl isPublished").populate("user", "username").populate("categories").exec();
+    res.json({ posts });
+  })
+];
+
+const getPublishedPosts = asyncHandler(async (req, res, next) => {
+  const posts = await Post.find({ isPublished: true }, "title subheader categories user imageurl").populate("user", "username").populate("categories").exec();
   res.json({ posts });
-});
+})
 
 const getPost = asyncHandler(async (req, res, next) => {
   const post = await Post.findById(req.params.postid).populate("user", "username").populate("categories").exec();
@@ -33,23 +42,20 @@ const postPost = [
   body("title")
     .trim()
     .isLength({ min: 1 }).withMessage("Post title is required.")
-    .isLength({ max: 400 }).withMessage("Post title must not exceed 400 characters.")
-    .escape(),
+    .isLength({ max: 400 }).withMessage("Post title must not exceed 400 characters."),
   body("subheader")
-    .trim()
-    .escape(),
+    .trim(),
   body("body")
     .trim()
-    .isLength({ min: 1 }).withMessage("Post body is required.")
-    .escape(),
+    .isLength({ min: 1 }).withMessage("Post body is required."),
   body("categories.*")
     .escape(),
   body("isPublished")
+    .optional({ values: "falsy" })
     .isBoolean()
     .escape(),
   body("publishDate")
     .optional({ values: "falsy" })
-    .isDate()
     .escape(),
 
   asyncHandler(async (req, res, next) => {
@@ -98,36 +104,57 @@ const deletePost = [
 const updatePost = [
   passport.authenticate("jwt", { session: false }),
   isAuthor,
+  upload.single("image"),
   body("title")
     .trim()
     .isLength({ min: 1 }).withMessage("Post title is required.")
-    .isLength({ max: 400 }).withMessage("Post title must not exceed 400 characters.")
-    .escape(),
+    .isLength({ max: 400 }).withMessage("Post title must not exceed 400 characters."),
   body("subheader")
-    .trim()
-    .escape(),
+    .trim(),
   body("body")
     .trim()
-    .isLength({ min: 1 }).withMessage("Post body is required.")
-    .escape(),
+    .isLength({ min: 1 }).withMessage("Post body is required."),
   body("categories.*")
     .escape(),
   body("isPublished")
+    .optional({ values: "falsy" })
     .isBoolean()
     .escape(),
   body("publishDate")
     .optional({ values: "falsy" })
-    .isDate()
     .escape(),
   body("editDate")
     .optional({ values: "falsy" })
-    .isDate()
     .escape(),
 
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       res.json({ errors: errors.array() });
+      return;
+    }
+    try {
+      if (req.file) {
+        const imageResult = await cloudinary.uploader.upload(req.file.path);
+        const imageurl = imageResult.secure_url;
+        const updatedPost = await Post.findByIdAndUpdate(req.params.postid, {
+          $set: {
+            title: req.body.title,
+            subheader: req.body.subheader,
+            body: req.body.body,
+            categories: JSON.parse(req.body.categories),
+            imageurl,
+            isPublished: req.body.isPublished,
+            ...(req.body.publishDate ? { publishDate: req.body.publishDate } : { publishDate: null }),
+            ...(req.body.editDate ? { editDate: req.body.editDate } : {}),
+          },
+        }, { new: true });
+        res.json({ post: updatedPost });
+        return;
+      }
+    } catch (err) {
+      console.log(err);
+      res.json({ message: "Error uploading image to Cloudinary." });
       return;
     }
     const updatedPost = await Post.findByIdAndUpdate(req.params.postid, {
@@ -137,12 +164,12 @@ const updatePost = [
         body: req.body.body,
         categories: JSON.parse(req.body.categories),
         isPublished: req.body.isPublished,
-        ...(req.body.publishDate ? { publishDate: req.body.publishDate } : {}),
-        ...(req.body.editDate ? { editDate: req.body.editDate } : {}),
+        ...(req.body.publishDate ? { publishDate: req.body.publishDate } : { publishDate: null }),
+        ...(req.body.editDate ? { editDate: req.body.editDate } : { editDate: null }),
       },
     }, { new: true });
     res.json({ post: updatedPost });
   }),
 ];
 
-export { getPosts, getPost, postPost, deletePost, updatePost };
+export { getPosts, getPublishedPosts, getPost, postPost, deletePost, updatePost };

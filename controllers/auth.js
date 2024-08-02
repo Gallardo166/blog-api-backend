@@ -33,7 +33,7 @@ const login = [
       { expiresIn: "1d" },
       (err, token) => {
         if (err) return next(err);
-        res.json({ token });
+        res.json({ token, status: req.user.status });
       }
     );
   },

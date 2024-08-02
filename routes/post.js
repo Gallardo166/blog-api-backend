@@ -1,10 +1,12 @@
 import express from "express";
-import { getPosts, getPost, postPost, deletePost, updatePost } from "../controllers/postController.js";
+import { getPosts, getPublishedPosts, getPost, postPost, deletePost, updatePost } from "../controllers/postController.js";
 import { getComments, getComment, postComment, deleteComment, updateComment } from "../controllers/commentController.js";
 
 const router = express.Router();
 
 router.get("/", getPosts);
+
+router.get("/published", getPublishedPosts);
 
 router.post("/", postPost);
 
